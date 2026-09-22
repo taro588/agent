@@ -4,6 +4,11 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -16,7 +21,7 @@ jobs:
       - name: Check out exact tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 1
           persist-credentials: false
 
@@ -25,7 +30,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $version = (Get-Content VERSION -Raw).Trim()
-          if ("${{ github.ref_name }}" -ne "v$version") { throw "Tag/version mismatch." }
+          if ("${{ inputs.tag || github.ref_name }}" -ne "v$version") { throw "Tag/version mismatch." }
 
           choco install innosetup --yes --no-progress
 
