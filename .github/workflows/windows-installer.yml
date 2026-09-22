@@ -39,7 +39,7 @@ jobs:
           @'
           #define AppName "Codex One-Click Installer"
           #define AppVersion GetEnv("CODEX_VERSION")
-          #define AppExe "Codex-One-Click-Installer.exe"
+          #define AppExe "Codex-One-Click-Installer"
 
           [Setup]
           AppId={{B8D0B3B1-8D0B-4E1D-9E7E-6D5F2A8C0A11}
