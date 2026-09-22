@@ -2,17 +2,14 @@
 from __future__ import annotations
 import os, shutil, sys, threading, tkinter as tk
 import tempfile, time, importlib, json, urllib.request
-import tempfile, time
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from src.core.installer import ToolkitInstaller
 from src.core.plugin_installer import PluginInstaller
 from src.core.host_integration import HostIntegrator
 
-APP_VERSION="0.1.0-alpha"
-UPDATE_URL="https://api.github.com/repos/taro588/taro588.gitthub.io/releases/latest"
-
-APP_VERSION="0.1.0-alpha"
+APP_VERSION="2.1.3"
+UPDATE_URL="https://api.github.com/repos/taro588/agent/releases/latest"
 
 PLUGINS=[("texture-importer","Maya"),("totex","3ds Max"),("MayaToPainter","Maya"),("SubstancePainterToMaya","Maya"),("rename-lowhigh-proximity","3ds Max"),("fal-texture-pbr-generator","Shared"),("Procedural-PBR","Shared"),("SubstanceDesignerTools","Shared")]
 
