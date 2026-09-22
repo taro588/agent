@@ -64,6 +64,18 @@ jobs:
           if (!$p.HasExited) { Stop-Process -Id $p.Id -Force }
           if (!(Test-Path "test\GameArt-AI-Toolkit-Installer.png")) { throw "Screenshot was not created." }
 
+      - name: End-to-end EXE launch and clean-state verification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:LOCALAPPDATA "GameArt-AI-Toolkit"
+          if (Test-Path $root) { Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue }
+          $p = Start-Process -FilePath "$PWD\dist\GameArt-AI-Toolkit-Installer.exe" -PassThru
+          Start-Sleep -Seconds 3
+          if ($p.HasExited -and $p.ExitCode -ne 0) { throw "Installer exited unexpectedly: $($p.ExitCode)" }
+          if (!$p.HasExited) { Stop-Process -Id $p.Id -Force }
+          if (Test-Path $root) { throw "Installer created state before user action." }
+
       - name: Upload UI screenshot
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
