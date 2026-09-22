@@ -13,6 +13,8 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import urllib.request
+import zipfile
 from urllib.parse import urlparse
 import platform
 from .host_integration import HostIntegrator
@@ -83,16 +85,48 @@ class PluginInstaller:
             raise ValueError("Only GitHub HTTPS repositories are supported.")
         return source
 
-    def _git(self, *args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
-            ["git", *args],
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
+    def _download_zip(self, source: str, destination: Path, branch: str | None = None) -> None:
+        parsed = urlparse(source)
+        parts = [p for p in parsed.path.strip("/").split("/") if p]
+        if len(parts) != 2 or parts[0] == "users":
+            raise ValueError("Plugin source must be a GitHub repository URL.")
+        owner, repo = parts
+        if repo.endswith(".git"):
+            repo = repo[:-4]
+        ref = f"/{branch}" if branch else ""
+        url = f"https://api.github.com/repos/{owner}/{repo}/zipball{ref}"
+        request = urllib.request.Request(
+            url,
+            headers={"Accept": "application/vnd.github+json", "User-Agent": "GameArtToolkit"},
         )
+        archive = destination.parent / (destination.name + ".zip")
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response, archive.open("wb") as out:
+                shutil.copyfileobj(response, out)
+            with zipfile.ZipFile(archive) as zf:
+                root = destination
+                root.mkdir(parents=True, exist_ok=True)
+                for member in zf.infolist():
+                    name = member.filename.replace("\\", "/")
+                    if name.startswith("/") or any(part == ".." for part in name.split("/")):
+                        raise ValueError(f"Unsafe archive path: {member.filename}")
+                    target = (root / Path(name)).resolve()
+                    target.relative_to(root.resolve())
+                    if member.is_dir():
+                        target.mkdir(parents=True, exist_ok=True)
+                    else:
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        with zf.open(member) as src, target.open("wb") as dst:
+                            shutil.copyfileobj(src, dst)
+        finally:
+            archive.unlink(missing_ok=True)
+        children = [p for p in destination.iterdir() if p.is_dir()]
+        files = [p for p in destination.iterdir() if p.is_file()]
+        if len(children) == 1 and not files:
+            nested = children[0]
+            for item in nested.iterdir():
+                os.replace(item, destination / item.name)
+            nested.rmdir()
 
     def resolve(self, name: str) -> dict:
         spec = KNOWN_PLUGINS.get(name)
@@ -121,24 +155,9 @@ class PluginInstaller:
             staging = Path(tempfile.mkdtemp(prefix=".plugin-", dir=self.root))
             checkout = staging / "checkout"
             try:
-                args = ["clone", "--depth", "1"]
-                if branch:
-                    args += ["--branch", branch]
-                args += [source, str(checkout)]
-                result = self._git(*args)
-                if result.returncode != 0:
-                    detail = (result.stderr or result.stdout).strip()
-                    raise RuntimeError(f"git clone failed: {detail or 'unknown error'}")
-
+                self._download_zip(source, checkout, branch)
                 if not checkout.is_dir() or not any(checkout.iterdir()):
-                    raise RuntimeError("Git clone completed but the plugin directory is empty.")
-
-                # Installed plugins are payloads, not working Git checkouts.
-                # Removing .git keeps credentials/config metadata out of the
-                # Toolkit and makes Windows uninstall deterministic.
-                git_metadata = checkout / ".git"
-                if git_metadata.exists():
-                    self._remove_tree(git_metadata)
+                    raise RuntimeError("GitHub archive completed but the plugin directory is empty.")
 
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 os.replace(checkout, destination)
