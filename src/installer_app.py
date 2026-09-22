@@ -70,8 +70,12 @@ class InstallerApp:
         except Exception as e:r={"ok":False,"error":f"{type(e).__name__}: {e}"}
         self.root.after(0,lambda:self.done(r))
     def done(self,r):
-        self.progress.stop(); self.write(r); ok=bool(r.get("ok",False)); self.status.set("完成" if ok else "失败"); self.btn.configure(state="normal")
-        if ok and r.get("installed"): messagebox.showinfo("GameArt AI Toolkit","操作完成。")
+        self.progress.stop(); self.write(r)
+        if r.get("plugin_verify"):
+            for item in r["plugin_verify"]:
+                self.write(f"插件自检：{item.get('name')} -> {item.get('status')}")
+        ok=bool(r.get("ok",False)); self.status.set("完成" if ok else "失败"); self.btn.configure(state="normal")
+        if ok and r.get("installed"): messagebox.showinfo("GameArt AI Toolkit","安装完成，核心、DCC 与已选插件均通过自检。")
         elif not ok and r.get("error"): messagebox.showerror("GameArt AI Toolkit",str(r["error"]))
     def start_install(self):
         self.install_root=Path(self.path_var.get()).expanduser().resolve(); self._run(self.install_all)
