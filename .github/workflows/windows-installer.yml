@@ -100,7 +100,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $tag = "${{ github.ref_name }}"
+          $tag = "${{ inputs.tag || github.ref_name }}"
           $file = "dist\Codex-One-Click-Installer.exe"
 
           for ($i = 1; $i -le 30; $i++) {
@@ -109,4 +109,14 @@ jobs:
             Start-Sleep -Seconds 10
           }
 
-          gh release upload $tag $file --clobber
+          $releaseId = gh release view $tag --json databaseId --jq .databaseId
+          if ([string]::IsNullOrWhiteSpace($releaseId)) { throw "Release ID was not resolved." }
+
+          $assetName = [System.IO.Path]::GetFileName($file)
+          $uploadUrl = "https://uploads.github.com/repos/" + "${{ github.repository }}" + "/releases/" + $releaseId + "/assets?name=" + $assetName
+          curl.exe --fail --location --retry 3 --retry-delay 2 `
+            -H "Accept: application/vnd.github+json" `
+            -H "Authorization: Bearer $env:GH_TOKEN" `
+            -H "Content-Type: application/octet-stream" `
+            --data-binary "@$file" `
+            $uploadUrl
