@@ -55,7 +55,7 @@ class InstallerApp:
         self.btn=ttk.Button(b,text="一键安装 / 更新",command=self.start_install); self.btn.pack(side="left"); ttk.Button(b,text="回滚上一版本",command=lambda:self._run(self.rollback)).pack(side="left",padx=6)
         ttk.Button(b,text="修复",command=lambda:self._run(self.repair)).pack(side="left",padx=6)
         ttk.Button(b,text="卸载",command=self.start_uninstall).pack(side="left")
-        ttk.Button(b,text="检查环境",command=lambda:self._run(self.doctor)).pack(side="left",padx=6); ttk.Button(b,text="检查更新",command=lambda:self._run(self.check_update)).pack(side="left")
+        ttk.Button(b,text="检查环境",command=lambda:self._run(self.doctor)).pack(side="left",padx=6); ttk.Button(b,text="一键修复",command=lambda:self._run(self.auto_repair)).pack(side="left",padx=6); ttk.Button(b,text="检查更新",command=lambda:self._run(self.check_update)).pack(side="left")
         ttk.Button(b,text="退出",command=self.root.destroy).pack(side="right")
         self.progress=ttk.Progressbar(o,mode="indeterminate"); self.progress.pack(fill="x"); ttk.Label(o,textvariable=self.status).pack(fill="x",pady=8)
         self.log=tk.Text(o,height=18); self.log.pack(fill="both",expand=True)
@@ -135,6 +135,29 @@ class InstallerApp:
         except Exception as exc:
             return {"ok":False,"checks":checks,"error":f"{type(exc).__name__}: {exc}"}
         return {"ok":all(checks.values()),"checks":checks}
+
+    def auto_repair(self):
+        root=self.install_root
+        actions=[]
+        if not self._path_writable(root):
+            return {"ok":False,"actions":actions,"error":"安装目录不可写，请更换到用户可写目录。"}
+        if (root/"installed.json").is_file():
+            try:
+                r=ToolkitInstaller(root).repair()
+                actions.append({"action":"toolkit_repair","ok":r.ok,"error":r.error})
+            except Exception as exc:
+                actions.append({"action":"toolkit_repair","ok":False,"error":f"{type(exc).__name__}: {exc}"})
+            try:
+                pi=PluginInstaller(root)
+                for item in pi.verify_all():
+                    if item.get("status") != "ok":
+                        actions.append({"action":"plugin_recheck","name":item.get("name"),"ok":False,"detail":item})
+            except Exception as exc:
+                actions.append({"action":"plugin_recheck","ok":False,"error":f"{type(exc).__name__}: {exc}"})
+        else:
+            actions.append({"action":"install_required","ok":False,"detail":"尚未安装 Toolkit，请执行一键安装。"})
+        result=self.doctor()
+        return {"ok":result["ok"],"actions":actions,"doctor":result}
 
     def check_update(self):
         try:
