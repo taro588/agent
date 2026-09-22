@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Annotated release tag to publish"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -35,7 +41,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-          ref: ${{ github.ref }}
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Verify annotated tag, main reachability, and remote identity
         shell: bash
@@ -79,15 +85,20 @@ jobs:
           }
 
           version="$(tr -d '\r\n' < VERSION)"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            release_tag="${{ inputs.tag }}"
+          else
+            release_tag="$GITHUB_REF_NAME"
+          fi
           expected_tag="v${version}"
-          test "$GITHUB_REF_NAME" = "$expected_tag" || {
+          test "$release_tag" = "$expected_tag" || {
             echo "::error title=Version mismatch::Tag $GITHUB_REF_NAME does not match VERSION $version."
             exit 1
           }
 
           git fetch --force --prune --tags origin \
             "+refs/heads/main:refs/remotes/origin/main"
-          tag_ref="refs/tags/$GITHUB_REF_NAME"
+          tag_ref="refs/tags/$release_tag"
           test "$(git cat-file -t "$tag_ref")" = "tag" || {
             echo "::error title=Unsigned release intent::Release tags must be annotated tags."
             exit 1
@@ -107,11 +118,11 @@ jobs:
             exit 1
           }
           verify_remote_tag \
-            "$GITHUB_REF_NAME" "$tag_object" "$tag_commit" "$event_commit"
+            "$release_tag" "$tag_object" "$tag_commit" "$event_commit"
 
           test -z "$(git status --porcelain --untracked-files=no)"
           {
-            echo "RELEASE_TAG=$GITHUB_REF_NAME"
+            echo "RELEASE_TAG=$release_tag"
             echo "RELEASE_TAG_OBJECT=$tag_object"
             echo "RELEASE_TAG_COMMIT=$tag_commit"
             echo "RELEASE_EVENT_COMMIT=$event_commit"
