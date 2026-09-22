@@ -3,6 +3,7 @@ name: Build Windows One-Click EXE
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
