@@ -70,3 +70,37 @@ jobs:
           name: GameArt-AI-Toolkit-Installer-UI
           path: test/GameArt-AI-Toolkit-Installer.png
           if-no-files-found: error
+      - name: End-to-end plugin installer smoke test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $PWD "test\plugin-smoke"
+          $maya = Join-Path $PWD "test\maya-user"
+          $max = Join-Path $PWD "test\max-user"
+          New-Item -ItemType Directory -Force -Path $root,$maya,$max | Out-Null
+          $env:GAMEART_MAYA_USER_SCRIPTS = $maya
+          $env:GAMEART_MAX_USER_STARTUP = Join-Path $max "startup"
+          $env:PYTHONPATH = $PWD
+          @'
+          from pathlib import Path
+          from src.core.plugin_installer import PluginInstaller, KNOWN_PLUGINS
+          root = Path("test/plugin-smoke").resolve()
+          installer = PluginInstaller(root)
+          failures = []
+          for name in KNOWN_PLUGINS:
+              result = installer.install(name)
+              print(name, result.ok, result.error or "")
+              if not result.ok:
+                  failures.append(name)
+          installed = {item["name"] for item in installer.installed()}
+          print("installed:", sorted(installed))
+          for name in list(installed):
+              result = installer.uninstall(name)
+              print("uninstall", name, result.ok, result.error or "")
+              if not result.ok:
+                  failures.append("uninstall:" + name)
+          if failures:
+              raise SystemExit("Plugin smoke failures: " + ", ".join(failures))
+          print("All declared plugins installed and removed successfully.")
+          '@ | Set-Content -Encoding UTF8 test\plugin_smoke.py
+          py -3 test\plugin_smoke.py
