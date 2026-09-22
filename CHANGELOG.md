@@ -4,9 +4,9 @@
 
 ## [Unreleased]
 
-目标版本：`2.1.2`。
+目标版本：`2.1.3`。
 
-## [2.1.2] - 2026-09-22
+## [2.1.3] - 2026-09-22
 
 ### Added
 
@@ -15,6 +15,9 @@
 - 插件安装后不携带 Git 元数据，Windows 卸载增加只读文件处理。
 
 ### Changed
+
+- Windows 插件安装改为直接从 GitHub HTTPS Archive 获取，不要求用户安装 Git。
+- 修正安装器版本号与更新检查地址，指向当前 `taro588/agent` Release。
 
 - Codex Windows 一键安装器 Release 同步提供 GameArt AI Toolkit 安装器。
 
