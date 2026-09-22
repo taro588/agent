@@ -36,4 +36,4 @@ jobs:
             git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$tag"
           fi
           gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$tag" -f tag="$tag"
-          gh workflow run windows-installer.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"
+          gh workflow run windows-installer.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag="$tag"
