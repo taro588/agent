@@ -29,10 +29,10 @@ class PluginInstallResult:
 
 PLUGIN_PROFILES = {
     "texture-importer": {"host":"maya","entry_mode":"path_only","note":"Python package; load through sys.path, no blanket execution."},
-    "totex": {"host":"3ds_max","entry_mode":"path_only","note":"Max tool; expose scripts directory, no blanket execution."},
+    "totex": {"host":"3ds_max","entry_mode":"manual_script","note":"MaxScript/MZP tool; expose files and provide explicit launcher from the Toolkit manager."},
     "MayaToPainter": {"host":"maya","entry_mode":"path_only","note":"Maya integration; inspect upstream startup files before enabling."},
     "SubstancePainterToMaya": {"host":"maya","entry_mode":"path_only","note":"Maya integration; inspect upstream startup files before enabling."},
-    "rename-lowhigh-proximity": {"host":"3ds_max","entry_mode":"path_only","note":"MAXScript utility; manual invocation unless explicit startup script exists."},
+    "rename-lowhigh-proximity": {"host":"3ds_max","entry_mode":"manual_script","note":"MAXScript utility; provide explicit launcher from the Toolkit manager."},
     "fal-texture-pbr-generator": {"host":"shared","entry_mode":"manual","note":"External/AI workflow; never auto-execute network code at DCC startup."},
     "Procedural-PBR": {"host":"shared","entry_mode":"manual","note":"Procedural PBR workflow; manual activation."},
     "SubstanceDesignerTools": {"host":"shared","entry_mode":"manual","note":"Substance Designer tooling; not a Maya/Max startup plugin."},
