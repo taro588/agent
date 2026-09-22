@@ -39,40 +39,15 @@ PLUGIN_PROFILES = {
 }
 
 KNOWN_PLUGINS = {
-    "texture-importer": {
-        "host": "maya",
-        "url": "https://github.com/beatreichenbach/texture-importer.git",
-    },
-    "totex": {
-        "host": "3ds_max",
-        "url": "https://github.com/svenfraeys/totex.git",
-    },
-    "MayaToPainter": {
-        "host": "maya",
-        "url": "https://github.com/pramberg/MayaToPainter.git",
-    },
-    "SubstancePainterToMaya": {
-        "host": "maya",
-        "url": "https://github.com/Strangenoise/SubstancePainterToMaya.git",
-    },
-    "rename-lowhigh-proximity": {
-        "host": "3ds_max",
-        "url": "https://github.com/Khanzino3d/maxscript-rename-lowhigh-proximity.git",
-    },
-    "fal-texture-pbr-generator": {
-        "host": "shared",
-        "url": "https://github.com/lovisdotio/fal-texture-pbr-generator.git",
-    },
-    "Procedural-PBR": {
-        "host": "shared",
-        "url": "https://github.com/Whappens/Procedural-PBR.git",
-    },
-    "SubstanceDesignerTools": {
-        "host": "shared",
-        "url": "https://github.com/Gil-1/SubstanceDesignerTools.git",
-    },
+    "texture-importer": {"host":"maya","url":"https://github.com/beatreichenbach/texture-importer.git","install":"manual_launcher","entry_candidates":["setup_maya.mel","setup_max.ms"]},
+    "totex": {"host":"3ds_max","url":"https://github.com/svenfraeys/totex.git","install":"mzp_or_script","entry_candidates":["mzpInstall.ms","totex.ms","ToTex"]},
+    "MayaToPainter": {"host":"maya","url":"https://github.com/pramberg/MayaToPainter.git","install":"manual_launcher","entry_candidates":[]},
+    "SubstancePainterToMaya": {"host":"maya","url":"https://github.com/Strangenoise/SubstancePainterToMaya.git","install":"path_and_shelf","entry_candidates":["main.py"]},
+    "rename-lowhigh-proximity": {"host":"3ds_max","url":"https://github.com/Khanzino3d/maxscript-rename-lowhigh-proximity.git","install":"manual_script","entry_candidates":[]},
+    "fal-texture-pbr-generator": {"host":"shared","url":"https://github.com/lovisdotio/fal-texture-pbr-generator.git","install":"web_app","entry_candidates":[]},
+    "Procedural-PBR": {"host":"shared","url":"https://github.com/Whappens/Procedural-PBR.git","install":"cli","entry_candidates":["generate_brick_pbr.py","generate_grass_pbr.py","generate_clouds_pbr.py","generate_liquid_pbr.py","generate_water_pbr.py","generate_snow_pbr.py","generate_ice_pbr.py"]},
+    "SubstanceDesignerTools": {"host":"shared","url":"https://github.com/Gil-1/SubstanceDesignerTools.git","install":"substance_sbs","entry_candidates":["Simple_Triplanar_Texturer.sbs"]},
 }
-
 class PluginInstaller:
     def __init__(self, root: str | Path):
         self.root = Path(root).expanduser().resolve()
