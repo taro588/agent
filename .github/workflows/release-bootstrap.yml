@@ -1,0 +1,38 @@
+name: Bootstrap annotated release tag
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  bootstrap:
+    if: ${{ startsWith(github.event.issue.title, '[release-bootstrap]') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Create annotated tag and dispatch release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '\r\n' < VERSION)"
+          tag="v${version}"
+          git fetch --tags origin
+          if git show-ref --verify --quiet "refs/tags/$tag"; then
+            echo "Tag $tag already exists; dispatching release."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$tag" "$GITHUB_SHA" -m "Release $tag"
+            git push origin "$tag"
+          fi
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag="$tag"
