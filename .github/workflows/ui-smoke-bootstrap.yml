@@ -1,0 +1,22 @@
+name: Bootstrap Windows UI smoke test
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch:
+    if: ${{ startsWith(github.event.issue.title, "[ui-smoke]") }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Dispatch UI smoke test
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run windows-installer-ui-smoke.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag=v2.1.0
