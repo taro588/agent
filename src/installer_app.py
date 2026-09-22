@@ -74,7 +74,13 @@ class InstallerApp:
         if r.get("plugin_verify"):
             for item in r["plugin_verify"]:
                 self.write(f"插件自检：{item.get('name')} -> {item.get('status')}")
-        ok=bool(r.get("ok",False)); self.status.set("完成" if ok else "失败"); self.btn.configure(state="normal")
+        if r.get("doctor"):
+            for name, value in r["doctor"].get("checks",{}).items():
+                self.write(f"{'✓' if value else '✗'} {name}")
+        if r.get("actions"):
+            for action in r["actions"]:
+                self.write(f"修复：{action}")
+        ok=bool(r.get("ok",False)); self.status.set("完成" if ok else "需要处理"); self.btn.configure(state="normal")
         if ok and r.get("installed"): messagebox.showinfo("GameArt AI Toolkit","安装完成，核心、DCC 与已选插件均通过自检。")
         elif not ok and r.get("error"): messagebox.showerror("GameArt AI Toolkit",str(r["error"]))
     def start_install(self):
