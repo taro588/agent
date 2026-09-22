@@ -7,6 +7,7 @@ from tkinter import filedialog, messagebox, ttk
 from src.core.installer import ToolkitInstaller
 from src.core.plugin_installer import PluginInstaller
 from src.core.host_integration import HostIntegrator
+from src.dcc.detector import detect_dcc, compatibility
 
 APP_VERSION="2.1.3"
 UPDATE_URL="https://api.github.com/repos/taro588/agent/releases/latest"
@@ -33,7 +34,7 @@ class InstallerApp:
     def __init__(self):
         self.root=tk.Tk(); self.root.title("GameArt AI Toolkit"); self.root.geometry("900x720"); self.root.minsize(820,640)
         self.install_root=Path(os.environ.get("GAMEART_TOOLKIT_HOME",Path.home()/"GameArtAI"/"Toolkit")).expanduser().resolve()
-        self.status=tk.StringVar(value="Ready"); self._build()
+        self.status=tk.StringVar(value="Ready"); self.dcc_info=detect_dcc(); self._build()
     def _build(self):
         o=ttk.Frame(self.root,padding=22); o.pack(fill="both",expand=True)
         ttk.Label(o,text="GameArt AI Toolkit",font=("Segoe UI",22,"bold")).pack(anchor="w")
@@ -43,7 +44,9 @@ class InstallerApp:
         hosts=detect_hosts(); self.host_vars={}
         hf=ttk.LabelFrame(o,text="主机集成"); hf.pack(fill="x",pady=12)
         for i,(h,label) in enumerate((("maya","Maya"),("3ds_max","3ds Max"))):
-            v=tk.BooleanVar(value=hosts[h]); self.host_vars[h]=v; ttk.Checkbutton(hf,text=f"{label}（{'已检测到' if hosts[h] else '未检测到'}）",variable=v).grid(row=0,column=i,sticky="w",padx=12,pady=8)
+            detected=self.dcc_info.get(h,[])
+            summary=", ".join(f"{x.version}（{'支持' if compatibility(h,x.version) else '不支持'}）" for x in detected) or ("环境变量已检测到，版本未知" if hosts[h] else "未检测到")
+            v=tk.BooleanVar(value=bool(detected) or hosts[h]); self.host_vars[h]=v; ttk.Checkbutton(hf,text=f"{label}：{summary}",variable=v).grid(row=0,column=i,sticky="w",padx=12,pady=8)
         ttk.Label(o,text="第三方插件（安装时可选）：").pack(anchor="w")
         self.vars={}; g=ttk.Frame(o); g.pack(fill="x")
         for i,(n,h) in enumerate(PLUGINS):
@@ -74,6 +77,14 @@ class InstallerApp:
         self.install_root=Path(self.path_var.get()).expanduser().resolve(); self._run(self.install_all)
     def install_all(self):
         root=self.install_root
+        self.dcc_info=detect_dcc()
+        for host, enabled in self.host_vars.items():
+            if not enabled.get():
+                continue
+            installs=self.dcc_info.get(host, [])
+            unsupported=[x.version for x in installs if not compatibility(host,x.version)]
+            if unsupported:
+                return {"ok":False,"error":f"{host} 检测到不支持的版本：{', '.join(unsupported)}。请取消该主机集成后再安装。"}
         root.mkdir(parents=True,exist_ok=True)
         installer=ToolkitInstaller(root)
         try:
