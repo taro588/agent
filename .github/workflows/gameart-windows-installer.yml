@@ -1,0 +1,47 @@
+name: Build GameArt Windows Installer
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "src/**"
+      - "dcc/**"
+      - "plugins/**"
+      - "pyproject.toml"
+      - ".github/workflows/gameart-windows-installer.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Build one-click GameArt EXE
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          py -3 -m pip install --disable-pip-version-check pyinstaller
+          py -3 -m PyInstaller --noconfirm --clean --onefile --windowed `
+            --name "GameArt-AI-Toolkit-Installer" `
+            --add-data "src;src" `
+            --add-data "dcc;dcc" `
+            src/installer_app.py
+          $exe = "dist\GameArt-AI-Toolkit-Installer.exe"
+          if (!(Test-Path $exe)) { throw "GameArt installer EXE was not produced." }
+          Get-FileHash $exe -Algorithm SHA256 | Format-List
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: GameArt-AI-Toolkit-Installer
+          path: dist/GameArt-AI-Toolkit-Installer.exe
+          if-no-files-found: error
