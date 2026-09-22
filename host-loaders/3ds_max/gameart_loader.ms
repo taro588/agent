@@ -40,6 +40,20 @@ fn GameArtToolkitShowManager =
     addRollout r dlg
 )
 
+
+fn GameArtToolkitRegisterPluginActions =
+(
+    local dir = GameArtToolkitRoot + "\\host-loaders\\3ds_max\\plugins"
+    if doesDirectoryExist dir then
+    (
+        local files = getFiles (dir + "\\*.ms")
+        for f in files do
+        (
+            try (fileIn f) catch (format "GameArt launcher registration failed: %\n" f)
+        )
+    )
+)
+
 fn GameArtToolkitInstallMenu =
 (
     try (menuMan.unRegisterMenu "GameArt AI Toolkit") catch()
@@ -59,6 +73,7 @@ try
     (
         on execute do GameArtToolkitShowManager()
     )
+    GameArtToolkitRegisterPluginActions()
     GameArtToolkitInstallMenu()
 )
 catch
