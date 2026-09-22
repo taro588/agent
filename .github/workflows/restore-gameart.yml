@@ -1,0 +1,95 @@
+name: Restore GameArt core and plugin references
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  restore:
+    if: startsWith(github.event.issue.title, '[restore-gameart]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Restore only required GameArt files
+        shell: bash
+        env:
+          SOURCE_REPO: https://github.com/taro588/taro588.gitthub.io.git
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          git clone --depth 1 "$SOURCE_REPO" "$tmp/source"
+
+          # Deliberately excluded: examples/, xtras/, HTML5 demo archives,
+          # website files, and the source repository's installer/launcher files.
+          cp -a "$tmp/source/dcc" .
+          cp -a "$tmp/source/src" .
+          cp -a "$tmp/source/PLUGIN_CATALOG.md" .
+          cp -a "$tmp/source/pyproject.toml" .
+
+          # Add only the two architecture docs and the plugin health report.
+          mkdir -p docs
+          cp "$tmp/source/docs/ARCHITECTURE_V1.md" docs/
+          cp "$tmp/source/docs/DEVELOPMENT_ROADMAP.md" docs/
+          cp "$tmp/source/docs/PLUGIN_HEALTH_CHECK_2026-09.md" docs/
+
+          # Add the GameArt test suite without touching existing installer tests.
+          for f in "$tmp/source"/tests/*; do
+            b="$(basename "$f")"
+            if [[ ! -e "tests/$b" ]]; then
+              cp "$f" "tests/$b"
+            fi
+          done
+
+          # Preserve the plugin registry as Git submodules; do not vendor third-party source.
+          cp "$tmp/source/.gitmodules" .gitmodules
+          while IFS= read -r name; do
+            path="$(git config -f "$tmp/source/.gitmodules" --get "submodule.$name.path")"
+            url="$(git config -f "$tmp/source/.gitmodules" --get "submodule.$name.url")"
+            branch="$(git config -f "$tmp/source/.gitmodules" --get "submodule.$name.branch" || true)"
+            rm -rf "$path"
+            if [[ -n "$branch" ]]; then
+              git submodule add -b "$branch" "$url" "$path"
+            else
+              git submodule add "$url" "$path"
+            fi
+          done < <(git config -f "$tmp/source/.gitmodules" --name-only --get-regexp '^submodule\..*\.path$' | sed -E 's/^submodule\.//; s/\.path$//')
+          git submodule sync --recursive
+
+      - name: Validate Python project
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check -q pytest
+          python3 -m pytest tests -q
+
+      - name: Commit safe merge
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .gitmodules PLUGIN_CATALOG.md pyproject.toml dcc src docs tests plugins
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Restore GameArt AI toolkit core and plugin references"
+          git push https://x-access-token:"$GH_TOKEN"@github.com/${{ github.repository }}.git HEAD:main
+
+      - name: Close restore request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue close "${{ github.event.issue.number }}" --comment "Safe restoration completed. GameArt core/DCC/tests/plugin references were restored; examples/ and xtras/ were intentionally excluded."
