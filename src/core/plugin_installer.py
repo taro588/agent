@@ -156,6 +156,8 @@ class PluginInstaller:
                     "branch": branch,
                     "path": str(destination),
                     "entry_mode": profile["entry_mode"],
+                    "install_mode": verified.get("install", "manual"),
+                    "entry_candidates": verified.get("entry_candidates", []),
                     "note": profile["note"],
                     "entrypoints": self._detect_entrypoints(destination),
                 }
