@@ -18,6 +18,7 @@ import zipfile
 from urllib.parse import urlparse
 import platform
 from .host_integration import HostIntegrator
+from .max_integration import build_plugin_launcher
 
 @dataclass(frozen=True)
 class PluginInstallResult:
@@ -167,6 +168,8 @@ class PluginInstaller:
                 tmp_manifest.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
                 os.replace(tmp_manifest, manifest_path)
                 self.generate_host_loaders()
+                if host == "3ds_max":
+                    self._generate_max_plugin_launcher(name, destination, verified.get("entry_candidates", []))
                 if host == "maya":
                     integration = self.host.register_maya()
                 elif host == "3ds_max":
@@ -193,6 +196,13 @@ class PluginInstaller:
             )
 
 
+
+    def _generate_max_plugin_launcher(self, name: str, destination: Path, candidates: list[str]) -> Path:
+        launchers = self._owned(self.root / "host-loaders" / "3ds_max" / "plugins")
+        launchers.mkdir(parents=True, exist_ok=True)
+        target = launchers / (name.replace("-", "_") + ".ms")
+        target.write_text(build_plugin_launcher(name, destination, candidates), encoding="utf-8")
+        return target
 
     def _detect_entrypoints(self, root: Path) -> list[dict[str, str]]:
         """Classify likely host entry points without importing or executing code."""
