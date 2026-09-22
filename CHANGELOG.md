@@ -4,7 +4,20 @@
 
 ## [Unreleased]
 
-目标版本：`2.1.3`。
+## [2.1.4] - 2026-09-22
+
+### Fixed
+
+- 修复 Windows GameArt AI Toolkit 安装器插件安装流程中的验证变量作用域问题。
+- 重新验证 8 个声明插件的安装与卸载冒烟测试全部通过。
+- 发布流程增加受控的 annotated tag 自动创建步骤，确保版本资产从对应 main 提交构建。
+
+### Verified
+
+- Windows GameArt 安装器构建成功。
+- Windows UI 启动截图成功生成。
+- Compatibility 全平台检查通过。
+- 插件安装/卸载 8/8 通过。
 
 ## [2.1.3] - 2026-09-22
 
@@ -18,10 +31,7 @@
 
 - Windows 插件安装改为直接从 GitHub HTTPS Archive 获取，不要求用户安装 Git。
 - 修正安装器版本号与更新检查地址，指向当前 `taro588/agent` Release。
-
 - Codex Windows 一键安装器 Release 同步提供 GameArt AI Toolkit 安装器。
-
-
 
 ### Added
 
@@ -92,8 +102,3 @@
 
 - Windows 幂等安装、更新入口和可选 App 兜底。
 - 该版本的发布 ZIP 曾丢失 macOS 文件执行权限；已在 v2 发布链路中加入真实归档回归测试。
-
-[Unreleased]: https://github.com/seaworld008/codex-one-click-installer/compare/v2.0.1...HEAD
-[2.0.1]: https://github.com/seaworld008/codex-one-click-installer/compare/v2.0.0...v2.0.1
-[2.0.0]: https://github.com/seaworld008/codex-one-click-installer/compare/v1.2.0...v2.0.0
-[1.2.0]: https://github.com/seaworld008/codex-one-click-installer/releases/tag/v1.2.0
