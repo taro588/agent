@@ -148,6 +148,7 @@ class PluginInstaller:
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 os.replace(checkout, destination)
                 profile = PLUGIN_PROFILES.get(name, {"host": host, "entry_mode": "manual", "note": "No automatic startup policy."})
+                verified = KNOWN_PLUGINS.get(name, {})
                 manifest = {
                     "name": name,
                     "state": "installed",
