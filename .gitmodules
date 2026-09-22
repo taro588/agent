@@ -1,0 +1,32 @@
+[submodule "plugins/maya/texture-importer"]
+	path = plugins/maya/texture-importer
+	url = https://github.com/beatreichenbach/texture-importer.git
+	branch = main
+[submodule "plugins/max/totex"]
+	path = plugins/max/totex
+	url = https://github.com/svenfraeys/totex.git
+	branch = master
+[submodule "plugins/maya/MayaToPainter"]
+	path = plugins/maya/MayaToPainter
+	url = https://github.com/pramberg/MayaToPainter.git
+	branch = main
+[submodule "plugins/maya/SubstancePainterToMaya"]
+	path = plugins/maya/SubstancePainterToMaya
+	url = https://github.com/Strangenoise/SubstancePainterToMaya.git
+	branch = master
+[submodule "plugins/max/rename-lowhigh-proximity"]
+	path = plugins/max/rename-lowhigh-proximity
+	url = https://github.com/Khanzino3d/maxscript-rename-lowhigh-proximity.git
+	branch = main
+[submodule "plugins/shared/fal-texture-pbr-generator"]
+	path = plugins/shared/fal-texture-pbr-generator
+	url = https://github.com/lovisdotio/fal-texture-pbr-generator.git
+	branch = main
+[submodule "plugins/shared/Procedural-PBR"]
+	path = plugins/shared/Procedural-PBR
+	url = https://github.com/Whappens/Procedural-PBR.git
+	branch = main
+[submodule "plugins/shared/SubstanceDesignerTools"]
+	path = plugins/shared/SubstanceDesignerTools
+	url = https://github.com/Gil-1/SubstanceDesignerTools.git
+	branch = main
