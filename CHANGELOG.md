@@ -4,7 +4,21 @@
 
 ## [Unreleased]
 
-目标版本：`2.1.0`。
+目标版本：`2.1.1`。
+
+## [2.1.1] - 2026-09-22
+
+### Added
+
+- 恢复 GameArt AI 核心、DCC 适配和插件引用，排除无关示例与旧网页资源。
+- 新增 Windows 单文件 GameArt AI Toolkit 安装器，并加入启动界面截图与插件安装/卸载冒烟测试。
+- 插件安装后不携带 Git 元数据，Windows 卸载增加只读文件处理。
+
+### Changed
+
+- Codex Windows 一键安装器 Release 同步提供 GameArt AI Toolkit 安装器。
+
+
 
 ### Added
 
