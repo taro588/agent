@@ -88,6 +88,8 @@ jobs:
           test ! -d xtras
 
       - name: Commit safe merge
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -99,7 +101,7 @@ jobs:
             exit 0
           fi
           git commit -m "Restore GameArt AI toolkit core and plugin references"
-          git push origin HEAD:main
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
 
       - name: Close restore request
         env:
