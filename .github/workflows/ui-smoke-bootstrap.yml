@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   dispatch:
-    if: ${{ startsWith(github.event.issue.title, "[ui-smoke]") }}
+    if: ${{ startsWith(github.event.issue.title, '[ui-smoke]') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Dispatch UI smoke test
