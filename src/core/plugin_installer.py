@@ -203,19 +203,26 @@ class PluginInstaller:
 
 
     def _detect_entrypoints(self, root: Path) -> list[dict[str, str]]:
-        """Detect entry points without importing or executing plugin code."""
+        """Classify likely host entry points without importing or executing code."""
         result = []
+        startup_names = {
+            "usersetup.py": "maya_user_setup",
+            "package.py": "maya_package",
+            "module-info.json": "maya_module",
+            "gamearttoolkitstartup.ms": "max_startup",
+        }
         for path in sorted(root.rglob("*")):
             if not path.is_file():
                 continue
-            rel = str(path.relative_to(root))
-            if path.suffix.lower() == ".py":
-                result.append({"type": "python", "path": rel})
-            elif path.suffix.lower() == ".mel":
-                result.append({"type": "maya_script", "path": rel})
-            elif path.suffix.lower() in {".ms", ".mcr"}:
-                result.append({"type": "maxscript", "path": rel})
+            rel = str(path.relative_to(root)).replace("\\", "/")
+            lower = path.name.lower()
+            suffix = path.suffix.lower()
+            if lower in startup_names:
+                result.append({"type": startup_names[lower], "path": rel, "load": "startup_candidate"})
+            elif suffix in {".mll", ".pyd", ".dll"}:
+                result.append({"type": "native_binary", "path": rel, "load": "manual_only"})
         return result[:100]
+
     def generate_host_loaders(self) -> list[str]:
         """Generate Toolkit-owned host loader files; never modify DCC installs."""
         generated = []
