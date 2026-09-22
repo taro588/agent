@@ -27,6 +27,17 @@ class PluginInstallResult:
     error: str | None = None
     source: str | None = None
 
+PLUGIN_PROFILES = {
+    "texture-importer": {"host":"maya","entry_mode":"path_only","note":"Python package; load through sys.path, no blanket execution."},
+    "totex": {"host":"3ds_max","entry_mode":"path_only","note":"Max tool; expose scripts directory, no blanket execution."},
+    "MayaToPainter": {"host":"maya","entry_mode":"path_only","note":"Maya integration; inspect upstream startup files before enabling."},
+    "SubstancePainterToMaya": {"host":"maya","entry_mode":"path_only","note":"Maya integration; inspect upstream startup files before enabling."},
+    "rename-lowhigh-proximity": {"host":"3ds_max","entry_mode":"path_only","note":"MAXScript utility; manual invocation unless explicit startup script exists."},
+    "fal-texture-pbr-generator": {"host":"shared","entry_mode":"manual","note":"External/AI workflow; never auto-execute network code at DCC startup."},
+    "Procedural-PBR": {"host":"shared","entry_mode":"manual","note":"Procedural PBR workflow; manual activation."},
+    "SubstanceDesignerTools": {"host":"shared","entry_mode":"manual","note":"Substance Designer tooling; not a Maya/Max startup plugin."},
+}
+
 KNOWN_PLUGINS = {
     "texture-importer": {
         "host": "maya",
@@ -161,6 +172,7 @@ class PluginInstaller:
 
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 os.replace(checkout, destination)
+                profile = PLUGIN_PROFILES.get(name, {"host": host, "entry_mode": "manual", "note": "No automatic startup policy."})
                 manifest = {
                     "name": name,
                     "state": "installed",
@@ -168,6 +180,8 @@ class PluginInstaller:
                     "source": source,
                     "branch": branch,
                     "path": str(destination),
+                    "entry_mode": profile["entry_mode"],
+                    "note": profile["note"],
                     "entrypoints": self._detect_entrypoints(destination),
                 }
                 manifest_path = self._owned(self.manifest_root / f"{name}.json")
