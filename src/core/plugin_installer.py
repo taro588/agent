@@ -270,6 +270,33 @@ if TOOLKIT_ROOT:
         except Exception as exc:
             return PluginInstallResult(False, name, str(self.plugin_root), f"{type(exc).__name__}: {exc}")
 
+
+    def verify(self, name: str) -> dict:
+        """Verify an installed plugin without importing or executing it."""
+        spec = self.resolve(name)
+        destination = self._owned(self.plugin_root / spec["host"] / name)
+        manifest_path = self._owned(self.manifest_root / f"{name}.json")
+        checks = [{"check": "directory", "ok": destination.is_dir()},
+                  {"check": "manifest", "ok": manifest_path.is_file()}]
+        manifest = {}
+        if manifest_path.is_file():
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                checks.append({"check": "manifest_json", "ok": False})
+        if manifest:
+            checks.append({"check": "manifest_path", "ok": Path(manifest.get("path","")).resolve() == destination})
+            for rel in manifest.get("entry_candidates", []):
+                checks.append({"check": f"candidate:{rel}", "ok": (destination / rel).is_file()})
+        entrypoints = self._detect_entrypoints(destination) if destination.is_dir() else []
+        checks.append({"check": "entrypoint_scan", "ok": True, "count": len(entrypoints)})
+        failed = [c for c in checks if not c.get("ok")]
+        return {"name": name, "status": "ok" if not failed else "needs_attention",
+                "checks": checks, "manifest": manifest}
+
+    def verify_all(self) -> list[dict]:
+        return [self.verify(item["name"]) for item in self.installed() if item.get("name")]
+
     def installed(self) -> list[dict]:
         result = []
         if not self.manifest_root.exists():
