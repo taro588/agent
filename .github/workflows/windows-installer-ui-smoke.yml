@@ -1,0 +1,53 @@
+name: Windows Installer UI Smoke Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to test"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  ui-smoke:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - name: Download installer
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tag = "${{ inputs.tag }}"
+          New-Item -ItemType Directory -Force -Path test | Out-Null
+          gh release download $tag --repo "${{ github.repository }}" --pattern "Codex-One-Click-Installer.exe" --dir test
+          if (!(Test-Path "test\Codex-One-Click-Installer.exe")) { throw "Installer download failed." }
+
+      - name: Launch installer and capture UI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Add-Type -AssemblyName System.Windows.Forms
+          Add-Type -AssemblyName System.Drawing
+          $p = Start-Process -FilePath "$PWD\test\Codex-One-Click-Installer.exe" -PassThru
+          Start-Sleep -Seconds 4
+          $screen = [System.Windows.Forms.Screen]::PrimaryScreen
+          $bounds = $screen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $g.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+          $bmp.Save("$PWD\test\installer-ui.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          $g.Dispose(); $bmp.Dispose()
+          if (!$p.HasExited) { Stop-Process -Id $p.Id -Force }
+          if (!(Test-Path "test\installer-ui.png")) { throw "Screenshot was not created." }
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: installer-ui-${{ inputs.tag }}
+          path: test/installer-ui.png
+          if-no-files-found: error
