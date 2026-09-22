@@ -16,7 +16,18 @@ APP_VERSION="0.1.0-alpha"
 
 PLUGINS=[("texture-importer","Maya"),("totex","3ds Max"),("MayaToPainter","Maya"),("SubstancePainterToMaya","Maya"),("rename-lowhigh-proximity","3ds Max"),("fal-texture-pbr-generator","Shared"),("Procedural-PBR","Shared"),("SubstanceDesignerTools","Shared")]
 
-def bundled_src(): return Path(getattr(sys,"_MEIPASS",Path(__file__).resolve().parents[1]))/"src"
+def bundled_root():
+    return Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+
+def bundled_payload():
+    root = bundled_root()
+    payload = {}
+    for name in ("src", "dcc"):
+        path = root / name
+        if not path.is_dir():
+            raise FileNotFoundError(f"Installer payload is missing: {name}")
+        payload[name] = path
+    return payload
 def detect_hosts():
     return {"maya":bool(os.environ.get("MAYA_LOCATION") or os.environ.get("MAYA_APP_DIR")),
             "3ds_max":bool(os.environ.get("ADSK_3DSMAX_USER_PATH") or os.environ.get("3DSMAX_ROOT"))}
@@ -68,12 +79,15 @@ class InstallerApp:
         root=self.install_root
         root.mkdir(parents=True,exist_ok=True)
         installer=ToolkitInstaller(root)
-        src=bundled_src()
-        if not src.is_dir():
-            return {"ok":False,"error":"Installer payload is missing."}
+        try:
+            bundled = bundled_payload()
+        except Exception as exc:
+            return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
         with tempfile.TemporaryDirectory(prefix="gameart-update-") as td:
-            payload=Path(td)/"payload"
-            shutil.copytree(src,payload)
+            payload = Path(td) / "payload"
+            payload.mkdir()
+            for name, source in bundled.items():
+                shutil.copytree(source, payload / name)
             version=f"toolkit-{APP_VERSION}-{time.strftime('%Y%m%d%H%M%S')}"
             staged=installer.stage_update(payload,version)
             if not staged.ok:
