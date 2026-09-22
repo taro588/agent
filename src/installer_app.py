@@ -111,13 +111,15 @@ class InstallerApp:
         if self.host_vars["3ds_max"].get(): hosts["3ds_max"]=hi.register_max().__dict__
         ok=all(x["ok"] for x in results) and all(x["ok"] for x in hosts.values())
         check=self.post_install_check(root) if ok else {"ok":False,"error":"Plugin or host installation failed."}
+        plugin_check=pi.verify_all() if ok and check["ok"] else []
         smoke=self.startup_smoke_test() if ok and check["ok"] else {"ok":False,"error":"Skipped because preflight checks failed."}
-        if ok and check["ok"] and smoke["ok"]: self._write_state(root)
-        elif ok and (not check["ok"] or not smoke["ok"]):
+        plugin_ok=all(x.get("status")=="ok" for x in plugin_check)
+        if ok and check["ok"] and plugin_ok and smoke["ok"]: self._write_state(root)
+        elif ok and (not check["ok"] or not plugin_ok or not smoke["ok"]):
             self.write("安装后自检失败，开始回滚…")
             rb=installer.rollback()
-            return {"ok":False,"installed":False,"rolled_back":rb.ok,"rollback_error":rb.error,"checks":check,"smoke_test":smoke}
-        return {"ok":ok,"installed":ok,"root":str(root),"plugins":results,"hosts":hosts,"checks":check}
+            return {"ok":False,"installed":False,"rolled_back":rb.ok,"rollback_error":rb.error,"checks":check,"plugin_verify":plugin_check,"smoke_test":smoke}
+        return {"ok":ok,"installed":ok,"root":str(root),"plugins":results,"hosts":hosts,"checks":check,"plugin_verify":plugin_check,"smoke_test":smoke}
     def post_install_check(self, root):
         checks = {}
         try:
