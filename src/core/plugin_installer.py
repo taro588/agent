@@ -10,6 +10,7 @@ from pathlib import Path
 import json
 import os
 import shutil
+import stat
 import subprocess
 import tempfile
 from urllib.parse import urlparse
@@ -132,6 +133,13 @@ class PluginInstaller:
                 if not checkout.is_dir() or not any(checkout.iterdir()):
                     raise RuntimeError("Git clone completed but the plugin directory is empty.")
 
+                # Installed plugins are payloads, not working Git checkouts.
+                # Removing .git keeps credentials/config metadata out of the
+                # Toolkit and makes Windows uninstall deterministic.
+                git_metadata = checkout / ".git"
+                if git_metadata.exists():
+                    self._remove_tree(git_metadata)
+
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 os.replace(checkout, destination)
                 manifest = {
@@ -162,7 +170,7 @@ class PluginInstaller:
         except Exception as exc:
             try:
                 if "destination" in locals() and destination.exists():
-                    shutil.rmtree(destination)
+                    self._remove_tree(destination)
             except OSError:
                 pass
             return PluginInstallResult(
@@ -216,6 +224,17 @@ if TOOLKIT_ROOT:
             generated.append(str(target))
         return generated
 
+    @staticmethod
+    def _remove_tree(path: Path) -> None:
+        def onerror(func, target, exc_info):
+            try:
+                os.chmod(target, stat.S_IWRITE | stat.S_IREAD)
+            except OSError:
+                pass
+            func(target)
+
+        shutil.rmtree(path, onerror=onerror)
+
     def uninstall(self, name: str) -> PluginInstallResult:
         try:
             spec = self.resolve(name)
@@ -223,7 +242,7 @@ if TOOLKIT_ROOT:
             destination = self._owned(self.plugin_root / host / name)
             manifest = self._owned(self.manifest_root / f"{name}.json")
             if destination.exists():
-                shutil.rmtree(destination)
+                self._remove_tree(destination)
             if manifest.exists():
                 manifest.unlink()
             if host == "maya":
