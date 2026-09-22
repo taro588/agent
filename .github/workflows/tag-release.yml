@@ -20,11 +20,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           version="$(tr -d '\r\n' < VERSION)"
           tag="v$version"
           message="$GITHUB_EVENT_HEAD_COMMIT_MESSAGE"
           test "$tag" = "${message#release }"
           commit="$GITHUB_SHA"
-          tag_sha="$(gh api --method POST "repos/taro588/agent/git/tags"             -f tag="$tag"             -f message="Release $tag"             -f object="$commit"             -f type="commit"             --jq '.sha')"
-          gh api --method POST "repos/taro588/agent/git/refs"             -f ref="refs/tags/$tag"             -f sha="$tag_sha"
+          tag_sha="$(gh api --method POST "repos/taro588/agent/git/tags" -f tag="$tag" -f message="Release $tag" -f object="$commit" -f type="commit" --jq '.sha')"
+          echo "created tag object: $tag_sha"
+          gh api --method POST "repos/taro588/agent/git/refs" -f ref="refs/tags/$tag" -f sha="$tag_sha"
