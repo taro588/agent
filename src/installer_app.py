@@ -172,6 +172,43 @@ class InstallerApp:
         r=ToolkitInstaller(self.install_root).uninstall()
         return {"ok":r.ok and all(x["ok"] for x in hosts.values()),"action":"uninstall","hosts":hosts,"error":r.error}
     def doctor(self):
-        root=self.install_root; return {"ok":True,"installed":(root/"installed.json").is_file(),"root":str(root),"hosts":detect_hosts()}
+        root=self.install_root
+        checks={}
+        checks["windows"] = sys.platform == "win32"
+        checks["python_runtime"] = sys.version_info >= (3, 10)
+        checks["install_root_writable"] = self._path_writable(root)
+        checks["bundled_payload"] = all(p.exists() for p in bundled_payload().values())
+        checks["github_https"] = self._https_check("https://api.github.com")
+        dcc=detect_dcc()
+        checks["maya_detected"] = bool(dcc.get("maya")) or bool(os.environ.get("MAYA_LOCATION") or os.environ.get("MAYA_APP_DIR"))
+        checks["3ds_max_detected"] = bool(dcc.get("3ds_max")) or bool(os.environ.get("ADSK_3DSMAX_USER_PATH") or os.environ.get("3DSMAX_ROOT"))
+        plugin_verify=[]
+        if (root/"installed.json").is_file():
+            try:
+                plugin_verify=PluginInstaller(root).verify_all()
+            except Exception as exc:
+                checks["plugin_verify"] = False
+                return {"ok":False,"checks":checks,"error":f"{type(exc).__name__}: {exc}"}
+        checks["plugin_verify"] = all(x.get("status")=="ok" for x in plugin_verify) if plugin_verify else True
+        return {"ok":all(checks.values()),"checks":checks,"root":str(root),"dcc":dcc,"plugin_verify":plugin_verify}
+
+    @staticmethod
+    def _path_writable(path):
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            probe=path/".gameart_write_test"
+            probe.write_text("ok",encoding="utf-8"); probe.unlink()
+            return True
+        except OSError:
+            return False
+
+    @staticmethod
+    def _https_check(url):
+        try:
+            req=urllib.request.Request(url,headers={"User-Agent":"GameArtToolkit"})
+            with urllib.request.urlopen(req,timeout=6) as response:
+                return 200 <= response.status < 500
+        except Exception:
+            return False
     def run(self): self.root.mainloop()
 if __name__=="__main__": InstallerApp().run()
