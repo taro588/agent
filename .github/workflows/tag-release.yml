@@ -1,0 +1,30 @@
+name: Tag release on explicit version commit
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    if: startsWith(github.event.head_commit.message, "release v")
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Create annotated version tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '\r\n' < VERSION)"
+          expected="v$version"
+          message="$GITHUB_EVENT_HEAD_COMMIT_MESSAGE"
+          test "$expected" = "${message#release }"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$expected" -m "Release $expected" "$GITHUB_SHA"
+          git push origin "$expected"
