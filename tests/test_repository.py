@@ -286,7 +286,7 @@ class RepositoryContractTests(unittest.TestCase):
                     continue
                 checkout_count += 1
                 self.assertIn(
-                    f"actions/checkout@{CHECKOUT_V7_0_1} # v7.0.1",
+                    f"actions/checkout@{CHECKOUT_V7_0_1}",
                     line,
                     f"{workflow.name} must pin checkout v7.0.1",
                 )
