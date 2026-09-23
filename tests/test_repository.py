@@ -35,8 +35,8 @@ EXPECTED_RELEASE_FILES = [
     "docs/troubleshooting.md",
     "install-codex-linux.sh",
     "install-codex-macos.sh",
-    "install-codex.ps1",
     "install-codex-unix.sh",
+    "install-codex.ps1",
     "macOS双击安装Codex.command",
     "macOS双击更新Codex.command",
 ]
