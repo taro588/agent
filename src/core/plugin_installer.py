@@ -81,7 +81,7 @@ class PluginInstaller:
         if repo.endswith(".git"):
             repo = repo[:-4]
         ref = f"/{branch}" if branch else ""
-        url = f"https://api.github.com/repos/{owner}/{repo}/zipball{ref}"
+        url = f"https://codeload.github.com/{owner}/{repo}/zip/{branch or 'HEAD'}"
         request = urllib.request.Request(
             url,
             headers={"Accept": "application/vnd.github+json", "User-Agent": "GameArtToolkit"},
