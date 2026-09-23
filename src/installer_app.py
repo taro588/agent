@@ -9,7 +9,7 @@ from src.core.plugin_installer import PluginInstaller
 from src.core.host_integration import HostIntegrator
 from src.dcc.detector import detect_dcc, compatibility
 
-APP_VERSION="2.1.11"
+APP_VERSION="2.1.12"
 UPDATE_URL="https://api.github.com/repos/taro588/agent/releases/latest"
 
 PLUGINS=[("texture-importer","Maya"),("totex","3ds Max"),("MayaToPainter","Maya"),("SubstancePainterToMaya","Maya"),("rename-lowhigh-proximity","3ds Max"),("fal-texture-pbr-generator","Shared"),("Procedural-PBR","Shared"),("SubstanceDesignerTools","Shared")]
