@@ -60,7 +60,7 @@ def _scan_registry(prefix, host):
                     i = 0
                     while True:
                         try:
-                            version, _, _ = winreg.EnumKey(root, i)
+                            version = winreg.EnumKey(root, i)
                             i += 1
                         except OSError:
                             break
