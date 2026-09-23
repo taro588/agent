@@ -78,6 +78,26 @@ class HostIntegrator:
         except Exception as exc:
             return HostIntegrationResult(False,"maya","unregister",str(self._maya_scripts()),f"{type(exc).__name__}: {exc}")
 
+    def _max_startups(self) -> list[Path]:
+        override = os.environ.get("GAMEART_MAX_USER_STARTUP")
+        if override:
+            return [Path(override).expanduser().resolve()]
+        local = Path(os.environ.get("LOCALAPPDATA", "")) / "Autodesk" / "3dsMax"
+        documents = Path(os.environ.get("USERPROFILE", str(Path.home()))) / "Documents" / "3ds Max"
+        roots: list[Path] = []
+        for base in (local, documents):
+            if not base.is_dir():
+                continue
+            for version in base.iterdir():
+                if not version.is_dir():
+                    continue
+                for candidate in (version / "ENU" / "scripts" / "startup",
+                                  version / "scripts" / "startup",
+                                  version / "ENU" / "scripts"):
+                    if candidate not in roots:
+                        roots.append(candidate)
+        return roots or [local / "2025" / "ENU" / "scripts" / "startup"]
+
     def register_max(self):
         try:
             source = self.loaders / "3ds_max" / "gameart_loader.ms"
@@ -93,7 +113,7 @@ class HostIntegrator:
                 raise RuntimeError("No 3ds Max user startup directory was found.")
             return HostIntegrationResult(True, "3ds_max", "register", ";".join(registered))
         except Exception as exc:
-            return HostIntegrationResult(False, "3ds_max", "register", str(self._max_startup()), f"{type(exc).__name__}: {exc}")
+            return HostIntegrationResult(False, "3ds_max", "register", str(self._max_startups()[0]), f"{type(exc).__name__}: {exc}")
 
     def unregister_max(self):
         try:
