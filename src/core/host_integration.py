@@ -123,6 +123,6 @@ class HostIntegrator:
                 if target.exists():
                     target.unlink()
                     removed.append(str(target))
-            return HostIntegrationResult(True, "3ds_max", "unregister", ";".join(removed) or str(self._max_startup()))
+            return HostIntegrationResult(True, "3ds_max", "unregister", ";".join(removed) or str(self._max_startups()[0]))
         except Exception as exc:
             return HostIntegrationResult(False, "3ds_max", "unregister", str(self._max_startup()), f"{type(exc).__name__}: {exc}")
