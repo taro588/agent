@@ -20,36 +20,18 @@ class HostIntegrator:
         self.root = Path(toolkit_root).expanduser().resolve()
         self.loaders = self.root / "host-loaders"
 
-    def _maya_scripts(self) -> Path:
+    def _maya_roots(self) -> list[Path]:
         override = os.environ.get("GAMEART_MAYA_USER_SCRIPTS")
-        return Path(override).expanduser().resolve() if override else (Path.home() / "Documents" / "maya" / "scripts").resolve()
-
-    def _max_roots(self) -> list[Path]:
-        override = os.environ.get("GAMEART_MAX_USER_ROOT")
         if override:
             return [Path(override).expanduser().resolve()]
-        roots: list[Path] = []
-        local = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-        autodesk = local / "Autodesk" / "3dsMax"
-        if autodesk.is_dir():
-            roots.extend(sorted((p for p in autodesk.iterdir() if p.is_dir()), key=lambda p: p.name))
-        # Keep the historical Documents path as a fallback for custom/legacy setups.
-        roots.append(Path.home() / "Documents" / "3ds Max")
-        unique = []
-        seen = set()
-        for root in roots:
-            root = root.resolve()
-            if str(root).lower() not in seen:
-                seen.add(str(root).lower())
-                unique.append(root)
-        return unique
+        documents = Path(os.environ.get("USERPROFILE", str(Path.home()))) / "Documents"
+        maya = documents / "maya"
+        roots = [p / "scripts" for p in maya.iterdir() if p.is_dir()] if maya.is_dir() else []
+        legacy = maya / "scripts"
+        return roots or [legacy]
 
-    def _max_startups(self) -> list[Path]:
-        return [root / "ENU" / "scripts" / "startup" for root in self._max_roots()]
-
-    def _max_startup(self) -> Path:
-        startups = self._max_startups()
-        return startups[0]
+    def _maya_scripts(self) -> Path:
+        return self._maya_roots()[0]
 
     def _write_maya_user_setup(self, scripts: Path, enabled: bool) -> Path:
         scripts.mkdir(parents=True, exist_ok=True)
@@ -84,15 +66,15 @@ class HostIntegrator:
 
     def register_maya(self):
         try:
-            p=self._write_maya_user_setup(self._maya_scripts(), True)
-            return HostIntegrationResult(True,"maya","register",str(p))
+            paths = [self._write_maya_user_setup(p, True) for p in self._maya_roots()]
+            return HostIntegrationResult(True,"maya","register",";".join(str(p) for p in paths))
         except Exception as exc:
             return HostIntegrationResult(False,"maya","register",str(self._maya_scripts()),f"{type(exc).__name__}: {exc}")
 
     def unregister_maya(self):
         try:
-            p=self._write_maya_user_setup(self._maya_scripts(), False)
-            return HostIntegrationResult(True,"maya","unregister",str(p))
+            paths = [self._write_maya_user_setup(p, False) for p in self._maya_roots()]
+            return HostIntegrationResult(True,"maya","unregister",";".join(str(p) for p in paths))
         except Exception as exc:
             return HostIntegrationResult(False,"maya","unregister",str(self._maya_scripts()),f"{type(exc).__name__}: {exc}")
 
