@@ -44,6 +44,7 @@ def verify_directory(root: Path, basename: str) -> dict[str, str]:
     payloads, expected = expected_names(basename)
     expected_set = set(expected)
     optional = {"Codex-One-Click-Installer.exe", "GameArt-AI-Toolkit-Installer.exe"}
+    optional = {"Codex-One-Click-Installer.exe", "GameArt-AI-Toolkit-Installer.exe"}
     if not root.is_dir():
         raise VerificationError(f"release asset directory is missing: {root}")
 
