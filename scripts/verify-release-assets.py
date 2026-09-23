@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strictly verify and compare the four public release assets."""
+"""Strictly verify and compare public release assets."""
 
 from __future__ import annotations
 
@@ -43,6 +43,7 @@ def verify_directory(root: Path, basename: str) -> dict[str, str]:
     root = root.resolve()
     payloads, expected = expected_names(basename)
     expected_set = set(expected)
+    optional = {"Codex-One-Click-Installer.exe", "GameArt-AI-Toolkit-Installer.exe"}
     if not root.is_dir():
         raise VerificationError(f"release asset directory is missing: {root}")
 
@@ -56,7 +57,8 @@ def verify_directory(root: Path, basename: str) -> dict[str, str]:
                 f"release asset directory contains a non-file entry: {entry.name}"
             )
         actual.add(entry.name)
-    if actual != expected_set or len(entries) != len(expected):
+    allowed_set = expected_set | optional
+    if not expected_set.issubset(actual) or not actual.issubset(allowed_set):
         missing = sorted(expected_set - actual)
         unexpected = sorted(actual - expected_set)
         raise VerificationError(
