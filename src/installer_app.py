@@ -142,7 +142,7 @@ class InstallerApp:
             checks["plugin_installer_import"] = importlib.import_module("src.core.plugin_installer") is not None
             checks["host_integration_import"] = importlib.import_module("src.core.host_integration") is not None
             checks["launcher_import"] = importlib.import_module("src.launcher") is not None
-            checks["payload_present"] = (root / "current").exists()
+            checks["payload_present"] = (root / "current").exists()\n            if self.host_vars["maya"].get():\n                checks["maya_script_registration"] = any(Path(p).exists() for p in HostIntegrator(root)._maya_roots())\n            if self.host_vars["3ds_max"].get():\n                checks["max_script_registration"] = any((p / "GameArtToolkitStartup.ms").exists() for p in HostIntegrator(root)._max_startups())
         except Exception as exc:
             return {"ok":False,"checks":checks,"error":f"{type(exc).__name__}: {exc}"}
         return {"ok":all(checks.values()),"checks":checks}
