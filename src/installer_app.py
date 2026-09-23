@@ -9,7 +9,7 @@ from src.core.plugin_installer import PluginInstaller
 from src.core.host_integration import HostIntegrator
 from src.dcc.detector import detect_dcc, compatibility
 
-APP_VERSION="2.1.3"
+APP_VERSION="2.1.10"
 UPDATE_URL="https://api.github.com/repos/taro588/agent/releases/latest"
 
 PLUGINS=[("texture-importer","Maya"),("totex","3ds Max"),("MayaToPainter","Maya"),("SubstancePainterToMaya","Maya"),("rename-lowhigh-proximity","3ds Max"),("fal-texture-pbr-generator","Shared"),("Procedural-PBR","Shared"),("SubstanceDesignerTools","Shared")]
@@ -45,7 +45,7 @@ class InstallerApp:
         hf=ttk.LabelFrame(o,text="主机集成"); hf.pack(fill="x",pady=12)
         for i,(h,label) in enumerate((("maya","Maya"),("3ds_max","3ds Max"))):
             detected=self.dcc_info.get(h,[])
-            summary=", ".join(f"{x.version}（{'支持' if compatibility(h,x.version) else '不支持'}）" for x in detected) or ("环境变量已检测到，版本未知" if hosts[h] else "未检测到")
+            summary=", ".join(f"{x.version}（{'支持' if compatibility(h,x.version) else '不支持'}）" for x in detected) or ("已通过环境变量发现，版本未知" if hosts[h] else "未检测到；可点击“重新检测”")
             v=tk.BooleanVar(value=bool(detected) or hosts[h]); self.host_vars[h]=v; ttk.Checkbutton(hf,text=f"{label}：{summary}",variable=v).grid(row=0,column=i,sticky="w",padx=12,pady=8)
         ttk.Label(o,text="第三方插件（安装时可选）：").pack(anchor="w")
         self.vars={}; g=ttk.Frame(o); g.pack(fill="x")
@@ -55,7 +55,7 @@ class InstallerApp:
         self.btn=ttk.Button(b,text="一键安装 / 更新",command=self.start_install); self.btn.pack(side="left"); ttk.Button(b,text="回滚上一版本",command=lambda:self._run(self.rollback)).pack(side="left",padx=6)
         ttk.Button(b,text="修复",command=lambda:self._run(self.repair)).pack(side="left",padx=6)
         ttk.Button(b,text="卸载",command=self.start_uninstall).pack(side="left")
-        ttk.Button(b,text="检查环境",command=lambda:self._run(self.doctor)).pack(side="left",padx=6); ttk.Button(b,text="一键修复",command=lambda:self._run(self.auto_repair)).pack(side="left",padx=6); ttk.Button(b,text="检查更新",command=lambda:self._run(self.check_update)).pack(side="left")
+        ttk.Button(b,text="重新检测 Max/Maya",command=lambda:self._run(self.redetect_hosts)).pack(side="left",padx=6); ttk.Button(b,text="检查环境",command=lambda:self._run(self.doctor)).pack(side="left",padx=6); ttk.Button(b,text="一键修复",command=lambda:self._run(self.auto_repair)).pack(side="left",padx=6); ttk.Button(b,text="检查更新",command=lambda:self._run(self.check_update)).pack(side="left")
         ttk.Button(b,text="退出",command=self.root.destroy).pack(side="right")
         self.progress=ttk.Progressbar(o,mode="indeterminate"); self.progress.pack(fill="x"); ttk.Label(o,textvariable=self.status).pack(fill="x",pady=8)
         self.log=tk.Text(o,height=18); self.log.pack(fill="both",expand=True)
@@ -81,8 +81,13 @@ class InstallerApp:
             for action in r["actions"]:
                 self.write(f"修复：{action}")
         ok=bool(r.get("ok",False)); self.status.set("完成" if ok else "需要处理"); self.btn.configure(state="normal")
-        if ok and r.get("installed"): messagebox.showinfo("GameArt AI Toolkit","安装完成，核心、DCC 与已选插件均通过自检。")
+        if ok and r.get("installed"):
+            messagebox.showinfo("GameArt AI Toolkit","安装成功！\n\n核心组件、DCC 脚本目录和已选择插件均已写入并通过安装后自检。\n\n请重新启动 Maya / 3ds Max 后使用。")
         elif not ok and r.get("error"): messagebox.showerror("GameArt AI Toolkit",str(r["error"]))
+    def redetect_hosts(self):
+        self.dcc_info = detect_dcc()
+        return {"ok": True, "dcc": self.dcc_info, "message": "已重新扫描 Maya / 3ds Max。"}
+
     def start_install(self):
         self.install_root=Path(self.path_var.get()).expanduser().resolve(); self._run(self.install_all)
     def install_all(self):
