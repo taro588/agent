@@ -64,10 +64,12 @@ def _scan_registry(prefix, host):
                             i += 1
                         except OSError:
                             break
-                        if not re.fullmatch(r"20\d{2}", version):
+                        match = re.search(r"(20\d{2})", version)
+                        if not match:
                             continue
+                        version = match.group(1)
                         try:
-                            with winreg.OpenKey(root, version) as key:
+                            with winreg.OpenKey(root, winreg.EnumKey(root, i - 1)) as key:
                                 vals = {}
                                 j = 0
                                 while True:
@@ -77,7 +79,7 @@ def _scan_registry(prefix, host):
                                         j += 1
                                     except OSError:
                                         break
-                            path = next((vals[k] for k in ("installpath", "installdir", "installdirectory", "path") if vals.get(k)), "")
+                            path = next((vals[k] for k in ("installpath", "installdir", "installdirectory", "path", "location") if vals.get(k)), "")
                             if path and Path(path).exists():
                                 found.append(DCCInstallation(host, version, path, "registry"))
                         except OSError:
@@ -86,37 +88,85 @@ def _scan_registry(prefix, host):
                 continue
     return found
 
-def _scan_common_paths(host):
-    roots = [Path(os.environ.get("ProgramFiles", r"C:\Program Files"))]
-    if os.environ.get("ProgramFiles(x86)"):
-        roots.append(Path(os.environ["ProgramFiles(x86)"]))
-    found = []
-    names = {
-        "maya": ("Autodesk", "Maya"),
-        "3ds_max": ("Autodesk", "3ds Max"),
-    }
-    base = names[host]
+def _candidate_roots():
+    roots = []
+    for key in ("ProgramFiles", "ProgramW6432", "ProgramFiles(x86)"):
+        value = os.environ.get(key)
+        if value:
+            roots.append(Path(value))
+    roots.extend([Path(r"C:\Program Files"), Path(r"C:\Program Files (x86)")])
+    unique, seen = [], set()
     for root in roots:
-        parent = root / base[0] / base[1]
+        try: root = root.resolve()
+        except OSError: continue
+        key = str(root).lower()
+        if key not in seen:
+            seen.add(key); unique.append(root)
+    return unique
+
+def _scan_common_paths(host):
+    found = []
+    names = {"maya": ("Autodesk", "Maya"), "3ds_max": ("Autodesk", "3ds Max")}
+    exe = {"maya": "maya.exe", "3ds_max": "3dsmax.exe"}[host]
+    for root in _candidate_roots():
+        parent = root / names[host][0] / names[host][1]
         if not parent.is_dir():
             continue
         for child in parent.iterdir():
-            if child.is_dir() and re.fullmatch(r"20\d{2}", child.name):
-                found.append(DCCInstallation(host, child.name, str(child), "filesystem"))
+            if child.is_dir():
+                m = re.search(r"20\d{2}", child.name)
+                if m and (child / exe).exists():
+                    found.append(DCCInstallation(host, m.group(0), str(child), "filesystem"))
+    return found
+
+def _scan_autodesk_uninstall(host):
+    winreg = _windows_registry()
+    if winreg is None:
+        return []
+    found = []
+    prefixes = {
+        "maya": (r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",),
+        "3ds_max": (r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",),
+    }
+    for hive in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+        for view in (getattr(winreg, "KEY_WOW64_64KEY", 0), getattr(winreg, "KEY_WOW64_32KEY", 0)):
+            try:
+                with winreg.OpenKey(hive, prefixes[host][0], 0, winreg.KEY_READ | view) as root:
+                    i = 0
+                    while True:
+                        try: sub = winreg.EnumKey(root, i); i += 1
+                        except OSError: break
+                        try:
+                            with winreg.OpenKey(root, sub) as key:
+                                vals = {}
+                                j = 0
+                                while True:
+                                    try:
+                                        n,v,_ = winreg.EnumValue(key,j); vals[n.lower()] = str(v); j += 1
+                                    except OSError: break
+                            display = vals.get("displayname","")
+                            if ("maya" not in display.lower() if host=="maya" else "3ds max" not in display.lower()):
+                                continue
+                            m = re.search(r"(20\d{2})", display)
+                            if not m: continue
+                            path = next((vals[k] for k in ("installlocation","installpath") if vals.get(k)), "")
+                            if path and Path(path).exists():
+                                found.append(DCCInstallation(host,m.group(1),path,"uninstall-registry"))
+                        except OSError: continue
+            except OSError: continue
     return found
 
 def detect_dcc():
     result = {"maya": [], "3ds_max": []}
-    for host, prefix in (
-        ("maya", r"SOFTWARE\Autodesk\Maya"),
-        ("3ds_max", r"SOFTWARE\Autodesk\3dsMax"),
-    ):
-        found = _scan_registry(prefix, host)
-        seen = {(x.version, x.path.lower()) for x in found}
-        for item in _scan_common_paths(host):
-            if (item.version, item.path.lower()) not in seen:
-                found.append(item)
-        result[host] = sorted(found, key=lambda x: x.version, reverse=True)
+    prefixes = {"maya": r"SOFTWARE\Autodesk\Maya", "3ds_max": r"SOFTWARE\Autodesk\3dsMax"}
+    for host in result:
+        found = _scan_registry(prefixes[host], host)
+        found += _scan_autodesk_uninstall(host)
+        found += _scan_common_paths(host)
+        unique = {}
+        for item in found:
+            unique[(item.version, item.path.lower())] = item
+        result[host] = sorted(unique.values(), key=lambda x: x.version, reverse=True)
     return result
 
 def compatibility(host, version):
