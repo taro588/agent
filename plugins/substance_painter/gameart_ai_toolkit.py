@@ -34,13 +34,11 @@ def _color(value: Any):
             raise ValueError("Color must be a 6-digit hex value such as #FF8800.")
         rgb = [int(text[i:i + 2], 16) / 255.0 for i in (0, 2, 4)]
         return substance_painter.colormanagement.Color(
-            rgb[0], rgb[1], rgb[2],
-            substance_painter.colormanagement.GenericColorSpace.sRGB,
+            rgb[0], rgb[1], rgb[2]
         )
     if isinstance(value, (list, tuple)) and len(value) == 3:
         return substance_painter.colormanagement.Color(
-            float(value[0]), float(value[1]), float(value[2]),
-            substance_painter.colormanagement.GenericColorSpace.sRGB,
+            float(value[0]), float(value[1]), float(value[2])
         )
     raise ValueError("Color must be #RRGGBB or [r,g,b].")
 
