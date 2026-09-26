@@ -27,8 +27,9 @@ Scripting bridge; do not request or execute arbitrary Python or OS commands.
 
 
 class SubstancePainterAIApp:
-    def __init__(self) -> None:
-        self.root = tk.Tk()
+    def __init__(self, parent=None) -> None:
+        self._standalone = parent is None
+        self.root = tk.Tk() if self._standalone else tk.Toplevel(parent)
         self.root.title("GameArt AI Toolkit · Substance 3D Painter")
         self.root.geometry("980x760")
         self.root.minsize(860, 650)
