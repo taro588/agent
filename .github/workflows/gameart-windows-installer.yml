@@ -29,7 +29,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          py -3 -m pip install --disable-pip-version-check pyinstaller
+          py -3 -m pip install --disable-pip-version-check pyinstaller "openai>=1.0.0"
           py -3 -m PyInstaller --noconfirm --clean --onefile --windowed `
             --name "GameArt-AI-Toolkit-Installer" `
             --add-data "src;src" `
