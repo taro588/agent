@@ -1,26 +1,37 @@
-"""Official Adobe Substance 3D Painter Remote Scripting client.
-
-This client does not automate the UI. It talks to Painter's documented
-/run.json remote-scripting endpoint and asks the installed GameArt plugin to
-execute one allow-listed command through Painter's official Python API.
-"""
+"""Official Adobe Substance 3D Painter Remote Scripting client."""
 from __future__ import annotations
-
 import base64
 import json
 from http.client import HTTPConnection
 from typing import Any
 
+ALLOWED_COMMANDS = {
+    "project.info",
+    "texture_sets.list",
+    "texture_set.channel.add",
+    "layers.list",
+    "layers.selected",
+    "layer.selected_fill_basecolor.set",
+    "layer.fill_color.create",
+    "layer.selected.mask.add",
+    "layer.selected.smart_mask.add",
+    "smart_material.add",
+    "resource.search",
+    "resource.import",
+    "project.save",
+    "textures.export",
+    "textures.export.preview",
+    "textures.export.presets.list",
+    "bake.selected.start",
+    "bake.highpoly.set",
+}
 
 class PainterRemoteError(RuntimeError):
     pass
 
-
 class PainterRemote:
-    def __init__(self, host: str = "127.0.0.1", port: int = 60041, timeout: int = 3600):
-        self.host = host
-        self.port = port
-        self.timeout = timeout
+    def __init__(self, host="127.0.0.1", port=60041, timeout=3600):
+        self.host, self.port, self.timeout = host, port, timeout
 
     def _post_python(self, script: str) -> str:
         payload = json.dumps({
@@ -28,34 +39,32 @@ class PainterRemote:
         }).encode("utf-8")
         connection = HTTPConnection(self.host, self.port, timeout=self.timeout)
         try:
-            connection.request(
-                "POST",
-                "/run.json",
-                payload,
-                {"Content-Type": "application/json", "Accept": "application/json"},
-            )
+            connection.request("POST", "/run.json", payload,
+                               {"Content-Type": "application/json",
+                                "Accept": "application/json"})
             response = connection.getresponse()
             body = response.read().decode("utf-8", errors="replace")
             if response.status >= 400:
-                raise PainterRemoteError(f"Painter remote scripting HTTP {response.status}: {body}")
+                raise PainterRemoteError(
+                    f"Painter remote scripting HTTP {response.status}: {body}"
+                )
             return body
         finally:
             connection.close()
 
+    def health(self) -> dict[str, Any]:
+        return self.dispatch("project.info")
+
     def dispatch(self, command: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
-        payload = json.dumps({
-            "command": command,
-            "arguments": arguments or {},
-        }, ensure_ascii=False)
+        if command not in ALLOWED_COMMANDS:
+            raise PainterRemoteError(f"Command is not allow-listed: {command}")
+        payload = json.dumps({"command": command, "arguments": arguments or {}},
+                             ensure_ascii=False)
         script = (
-            "import json\n"
-            "import sys\n"
-            "sys.path.insert(0, r'')\n"
             "import gameart_ai_toolkit\n"
             f"print(gameart_ai_toolkit.dispatch_json({payload!r}))\n"
         )
         raw = self._post_python(script)
-        # Painter can return a trailing newline around print() output.
         lines = [line.strip() for line in raw.splitlines() if line.strip()]
         if not lines:
             raise PainterRemoteError("Painter returned an empty response.")
