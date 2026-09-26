@@ -128,4 +128,4 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $env:PYTHONPATH = $PWD
-          py -3 -c "from src.sp_ai_app import SubstancePainterAIApp; from plugins.substance_painter.openai_tools import build_painter_tools; from src.ai.provider import OpenAIResponsesProvider; print(\"SP AI runtime import OK\")"
+          py -3 -c 'from src.sp_ai_app import SubstancePainterAIApp; from plugins.substance_painter.openai_tools import build_painter_tools; from src.ai.provider import OpenAIResponsesProvider; print("SP AI runtime import OK")'
