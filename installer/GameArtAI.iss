@@ -1,15 +1,15 @@
 #define MyAppName "GameArt AI Toolkit"
-#define MyAppVersion GetVersionNumbersString("..\dist\GameArtAI.exe")
 #define MyAppPublisher "GameArt AI Toolkit"
 #define MyAppExeName "GameArtAI.exe"
 
 [Setup]
 AppId={{B7F1D6B4-7B58-4A8D-9A1A-4B3D2F1E9C11}
 AppName={#MyAppName}
-AppVersion={#MyAppVersion}
+AppVerName={#MyAppName}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\GameArt AI Toolkit
 DisableProgramGroupPage=yes
+OutputDir=..\Output
 OutputBaseFilename=GameArt-AI-Toolkit-Setup
 Compression=lzma2
 SolidCompression=yes
