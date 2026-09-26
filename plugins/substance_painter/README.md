@@ -1,31 +1,18 @@
-# GameArt AI Toolkit — Substance 3D Painter
+# Substance Painter installation
 
-This integration uses Adobe Substance 3D Painter official Python API only for
-Painter-side operations.
+GameArt AI Toolkit installs the Python plugin using Adobe's documented user
+plugin location on Windows 7.2+:
 
-Execution path:
-AI request -> structured GameArt command -> allow-listed dispatcher ->
-Adobe Substance 3D Painter Python API -> validation/result.
-
-No mouse/keyboard automation, screen scraping, private Painter APIs, or simulated
-UI clicks are used.
-
-Windows Painter 7.2+ Python plugin location:
 %USERPROFILE%\Documents\Adobe\Adobe Substance 3D Painter\python\plugins\
 
-Supported commands:
-- project.info
-- texture_sets.list
-- layers.list
-- layers.selected
-- layer.selected_fill_basecolor.set
-- layer.fill_color.create
-- project.save
-- textures.export
+The installer does not modify the Painter installation directory.
 
-Adobe documents Python plugins under python/plugins and documents Remote Scripting
-on port 60041 using the /run.json endpoint when Painter is started with
---enable-remote-scripting.
+Remote control is launched with Adobe's documented:
+--enable-remote-scripting
 
-The external agent should call only dispatch_json() with an allow-listed command.
-It must never expose arbitrary Python execution to the AI.
+and uses the documented local endpoint:
+http://127.0.0.1:60041/run.json
+
+The plugin can also be managed through Painter's Python plugin system. Adobe
+documents an additional plugin root via SUBSTANCE_PAINTER_PLUGINS_PATH when a
+separate Toolkit-managed root is preferred.
