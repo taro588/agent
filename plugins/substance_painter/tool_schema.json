@@ -1,0 +1,30 @@
+{
+  "name": "substance_painter",
+  "description": "Execute approved Substance 3D Painter operations through Adobe's official Python API and Remote Scripting.",
+  "operations": [
+    "project.info",
+    "texture_sets.list",
+    "texture_set.channel.add",
+    "layers.list",
+    "layers.selected",
+    "layer.selected_fill_basecolor.set",
+    "layer.fill_color.create",
+    "layer.selected.mask.add",
+    "layer.selected.smart_mask.add",
+    "smart_material.add",
+    "resource.search",
+    "resource.import",
+    "project.save",
+    "textures.export",
+    "textures.export.preview",
+    "textures.export.presets.list",
+    "bake.selected.start",
+    "bake.highpoly.set"
+  ],
+  "policy": {
+    "arbitrary_python": false,
+    "ui_automation": false,
+    "private_api": false,
+    "execution": "Adobe official Painter API only"
+  }
+}
