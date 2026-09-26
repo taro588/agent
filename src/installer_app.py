@@ -8,6 +8,7 @@ from src.core.installer import ToolkitInstaller
 from src.core.plugin_installer import PluginInstaller
 from src.core.host_integration import HostIntegrator
 from src.dcc.detector import detect_dcc, compatibility
+from src.sp_ai_app import SubstancePainterAIApp
 
 APP_VERSION="2.1.14"
 UPDATE_URL="https://api.github.com/repos/taro588/agent/releases/latest"
@@ -59,6 +60,12 @@ class InstallerApp:
         ttk.Button(b,text="退出",command=self.root.destroy).pack(side="right")
         self.progress=ttk.Progressbar(o,mode="indeterminate"); self.progress.pack(fill="x"); ttk.Label(o,textvariable=self.status).pack(fill="x",pady=8)
         self.log=tk.Text(o,height=18); self.log.pack(fill="both",expand=True)
+    def open_painter_ai(self):
+        try:
+            SubstancePainterAIApp()
+        except Exception as exc:
+            messagebox.showerror("Substance 3D Painter AI", f"{type(exc).__name__}: {exc}")
+
     def choose_path(self):
         p=filedialog.askdirectory(initialdir=str(self.install_root.parent))
         if p:self.path_var.set(str(Path(p)/"GameArtAI"/"Toolkit"))
