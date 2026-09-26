@@ -1,14 +1,9 @@
-name: Build Windows One-Click EXE
+name: Windows Installer
 
 on:
+  workflow_dispatch:
   push:
     tags: ["v*"]
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Release tag to build"
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -16,147 +11,32 @@ permissions:
 jobs:
   build:
     runs-on: windows-2025
-    timeout-minutes: 20
     steps:
-      - name: Check out exact tag
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          ref: ${{ inputs.tag || github.ref }}
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Build single-file installer
+          python-version: "3.12"
+      - name: Install build dependencies
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          $version = (Get-Content VERSION -Raw).Trim()
-          if ("${{ inputs.tag || github.ref_name }}" -ne "v$version") { throw "Tag/version mismatch." }
-
-          choco install innosetup --yes --no-progress
-
-          New-Item -ItemType Directory -Force -Path dist | Out-Null
-
-          @'
-          #define AppName "Codex One-Click Installer"
-          #define AppVersion GetEnv("CODEX_VERSION")
-          #define AppExe "Codex-One-Click-Installer"
-
-          [Setup]
-          AppId={{B8D0B3B1-8D0B-4E1D-9E7E-6D5F2A8C0A11}
-          AppName={#AppName}
-          AppVersion={#AppVersion}
-          AppPublisher=Codex One-Click Installer
-          DefaultDirName={autopf}\Codex One-Click Installer
-          DisableProgramGroupPage=yes
-          Uninstallable=no
-          OutputDir=dist
-          OutputBaseFilename={#AppExe}
-          Compression=lzma2
-          SolidCompression=yes
-          ArchitecturesInstallIn64BitMode=x64
-          PrivilegesRequired=lowest
-          WizardStyle=modern
-
-          [Files]
-          Source: "install-codex.ps1"; DestDir: "{tmp}"; Flags: deleteafterinstall
-
-          [Code]
-          function InitializeSetup(): Boolean;
-          begin
-            Result := True;
-          end;
-
-          procedure CurStepChanged(CurStep: TSetupStep);
-          var
-            ResultCode: Integer;
-          begin
-            if CurStep = ssPostInstall then
-            begin
-              Exec(
-                'powershell.exe',
-                '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{tmp}\install-codex.ps1') + '"',
-                '',
-                SW_SHOWNORMAL,
-                ewWaitUntilTerminated,
-                ResultCode
-              );
-              if ResultCode <> 0 then
-                MsgBox('Codex installation failed. Exit code: ' + IntToStr(ResultCode), mbError, MB_OK);
-            end;
-          end;
-          '@ | Set-Content -Encoding UTF8 installer.iss
-
-          $env:CODEX_VERSION = $version
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer.iss
-          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed." }
-
-          $exe = "dist\Codex-One-Click-Installer.exe"
-          if (!(Test-Path $exe)) { throw "Installer EXE was not produced." }
-          Get-FileHash $exe -Algorithm SHA256 | Format-List
-
-      - name: Upload installer to the GitHub release
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $tag = "${{ inputs.tag || github.ref_name }}"
-          $file = "dist\Codex-One-Click-Installer.exe"
-
-          for ($i = 1; $i -le 30; $i++) {
-            gh release view $tag *> $null
-            if ($LASTEXITCODE -eq 0) { break }
-            Start-Sleep -Seconds 10
-          }
-
-          $releaseId = gh release view $tag --json databaseId --jq .databaseId
-          if ([string]::IsNullOrWhiteSpace($releaseId)) { throw "Release ID was not resolved." }
-
-          $assetName = [System.IO.Path]::GetFileName($file)
-          $uploadUrl = "https://uploads.github.com/repos/" + "${{ github.repository }}" + "/releases/" + $releaseId + "/assets?name=" + $assetName
-          curl.exe --fail --location --retry 3 --retry-delay 2 `
-            -H "Accept: application/vnd.github+json" `
-            -H "Authorization: Bearer $env:GH_TOKEN" `
-            -H "Content-Type: application/octet-stream" `
-            --data-binary "@$file" `
-            $uploadUrl
-      - name: Build single-file GameArt Toolkit installer
+          python -m pip install --upgrade pip
+          pip install -r installer/requirements.txt
+      - name: Build GameArtAI.exe
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          py -3 -m pip install --disable-pip-version-check pyinstaller
-          py -3 -m PyInstaller --noconfirm --clean --onefile --windowed `
-            --name "GameArt-AI-Toolkit-Installer" `
-            --add-data "src;src" `
-            --add-data "dcc;dcc" `
-            src/installer_app.py
-          $file = "dist\GameArt-AI-Toolkit-Installer.exe"
-          if (!(Test-Path $file)) { throw "GameArt installer EXE was not produced." }
-          Get-FileHash $file -Algorithm SHA256 | Format-List
-
-      - name: Upload GameArt installer to the GitHub release
+          pyinstaller --noconfirm --clean --onefile --windowed --name GameArtAI --add-data "plugins;plugins" --paths . installer/GameArtAI.py
+          if (!(Test-Path dist/GameArtAI.exe)) { throw "GameArtAI.exe was not produced" }
+      - name: Install Inno Setup
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
+        run: choco install innosetup -y --no-progress
+      - name: Build Setup.exe
+        shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          $tag = "${{ inputs.tag || github.ref_name }}"
-          $file = "dist\GameArt-AI-Toolkit-Installer.exe"
-
-          for ($i = 1; $i -le 30; $i++) {
-            gh release view $tag *> $null
-            if ($LASTEXITCODE -eq 0) { break }
-            Start-Sleep -Seconds 10
-          }
-
-          $releaseId = gh release view $tag --json databaseId --jq .databaseId
-          if ([string]::IsNullOrWhiteSpace($releaseId)) { throw "Release ID was not resolved." }
-
-          $assetName = [System.IO.Path]::GetFileName($file)
-          $uploadUrl = "https://uploads.github.com/repos/" + "${{ github.repository }}" + "/releases/" + $releaseId + "/assets?name=" + $assetName
-          curl.exe --fail --location --retry 3 --retry-delay 2 `
-            -H "Accept: application/vnd.github+json" `
-            -H "Authorization: Bearer $env:GH_TOKEN" `
-            -H "Content-Type: application/octet-stream" `
-            --data-binary "@$file" `
-            $uploadUrl
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer/GameArtAI.iss
+          if (!(Test-Path Output/GameArt-AI-Toolkit-Setup.exe)) { throw "Setup EXE was not produced" }
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameArt-AI-Toolkit-Windows
+          path: Output/GameArt-AI-Toolkit-Setup.exe
