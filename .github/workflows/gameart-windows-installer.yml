@@ -34,6 +34,12 @@ jobs:
             --name "GameArt-AI-Toolkit-Installer" `
             --add-data "src;src" `
             --add-data "dcc;dcc" `
+            --add-data "plugins;plugins" `
+            --add-data "requirements-ai.txt;." `
+            --hidden-import "plugins.substance_painter.installer" `
+            --hidden-import "plugins.substance_painter.remote_client" `
+            --hidden-import "plugins.substance_painter.openai_tools" `
+            --hidden-import "src.ai.provider" `
             src/installer_app.py
           $exe = "dist\GameArt-AI-Toolkit-Installer.exe"
           if (!(Test-Path $exe)) { throw "GameArt installer EXE was not produced." }
