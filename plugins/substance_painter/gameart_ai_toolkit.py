@@ -17,6 +17,7 @@ import substance_painter.resource
 import substance_painter.baking
 import substance_painter.colormanagement
 import substance_painter.ui
+from PySide2 import QtCore
 
 PLUGIN_NAME = "GameArt AI Toolkit"
 PLUGIN_VERSION = "2.1.14"
@@ -181,6 +182,20 @@ def apply_smart_mask_to_selected(resource_query: str) -> dict[str, Any]:
     return {"resource": str(resource.identifier()), "changed": changed}
 
 
+def apply_smart_material(resource_query: str) -> dict[str, Any]:
+    stack = _active_stack()
+    resources = substance_painter.resource.search(resource_query)
+    if not resources:
+        raise RuntimeError(f"No resource matched: {resource_query}")
+    resource = resources[0]
+    position = substance_painter.layerstack.InsertPosition.from_textureset_stack(stack)
+    group = substance_painter.layerstack.insert_smart_material(
+        position, resource.identifier()
+    )
+    substance_painter.layerstack.set_selected_nodes([group])
+    return {"resource": str(resource.identifier()), "name": group.get_name(), "uid": group.uid()}
+
+
 def add_texture_set_channel(channel_type: str) -> dict[str, Any]:
     stack = _active_stack()
     channel = getattr(substance_painter.textureset.ChannelType, channel_type)
@@ -191,7 +206,7 @@ def add_texture_set_channel(channel_type: str) -> dict[str, Any]:
 def list_export_presets() -> list[dict[str, Any]]:
     result = []
     for preset in substance_painter.export.list_predefined_export_presets():
-        result.append({"name": preset.name() if hasattr(preset, "name") else str(preset)})
+        result.append({"name": preset.name, "url": preset.url})
     return result
 
 
@@ -212,8 +227,9 @@ def set_bake_highpoly(texture_set_name: str, highpoly_path: str) -> dict[str, An
         texture_set_name
     )
     common = params.common()
+    highpoly_url = QtCore.QUrl.fromLocalFile(highpoly_path).toString()
     substance_painter.baking.BakingParameters.set({
-        common["HipolyMesh"]: highpoly_path,
+        common["HipolyMesh"]: highpoly_url,
     })
     return {"texture_set": texture_set_name, "highpoly": highpoly_path}
 
@@ -237,6 +253,7 @@ COMMANDS = {
     "resource.import": import_project_resource,
     "layer.selected.mask.add": add_mask_to_selected,
     "layer.selected.smart_mask.add": apply_smart_mask_to_selected,
+    "smart_material.add": apply_smart_material,
     "layers.list": layers,
     "layers.selected": selected_layers,
     "layer.selected_fill_basecolor.set": set_selected_fill_basecolor,
