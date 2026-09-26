@@ -62,7 +62,7 @@ class InstallerApp:
         self.log=tk.Text(o,height=18); self.log.pack(fill="both",expand=True)
     def open_painter_ai(self):
         try:
-            SubstancePainterAIApp()
+            SubstancePainterAIApp(self.root)
         except Exception as exc:
             messagebox.showerror("Substance 3D Painter AI", f"{type(exc).__name__}: {exc}")
 
