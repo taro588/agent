@@ -1,5 +1,5 @@
 #define MyAppName "GameArt AI Toolkit"
-#define MyAppVersion GetFileVersion("..\dist\GameArtAI.exe")
+#define MyAppVersion GetVersionNumbersString("..\dist\GameArtAI.exe")
 #define MyAppPublisher "GameArt AI Toolkit"
 #define MyAppExeName "GameArtAI.exe"
 
